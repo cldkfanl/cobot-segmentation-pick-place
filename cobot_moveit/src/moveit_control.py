@@ -44,6 +44,8 @@ pose_basic_position = ({
     'z' : 0.523
 })
 
+find_joint = [0.136, -1.4955, 0.5774, 0.9178, -1.7064, 1.57]
+
 aruco_start_pub = None
 seg_start_pub = None
 move_start_pub = None
@@ -78,7 +80,30 @@ def recent_tf_service_start(classname):
     except rospy.ServiceException as e:
         print("Service call failed: %s" % e)
         return None
-        
+
+def move_to_joint(joint) :
+    state_check_pub.publish(1)
+    
+    time.sleep(1)
+    moveit_commander.roscpp_initialize(sys.argv)
+
+    robot = moveit_commander.RobotCommander()
+
+    arm_group = moveit_commander.MoveGroupCommander("arm_group")
+    arm_group.set_planner_id("RRTConnectkConfigDefault")
+    # 계획 시도 횟수 설정
+    arm_group.set_num_planning_attempts(20)
+    
+    arm_group.set_joint_value_target(joint)
+    plan = arm_group.go(wait=True)  # 이동이 완료될 때까지 대기
+    if plan:
+        print("Movement successful!")
+    else:
+        print("Movement failed!")
+    arm_group.stop()
+    arm_group.clear_pose_targets()
+    time.sleep(1)
+          
 def move_to_pose(pose, ori):
     state_check_pub.publish(1)
     
@@ -106,6 +131,11 @@ def move_to_pose(pose, ori):
     arm_group.clear_pose_targets()
     time.sleep(1)
 
+def move_cobot_and_calib2(joint) :
+    move_to_joint(joint)
+    cali_service_start()
+    print("i return cali_service")
+    
 def move_cobot_and_calib(xyz, ori) :
     move_to_pose(xyz, ori)
     cali_service_start()
@@ -150,22 +180,23 @@ def third_callback(request) :
     global hanger_position, recent_aruco
     
     recent_aruco = hanger_position.get()
-    gripper_move(5)
-    tmp_pose = find_pose(recent_aruco, 0.05, 0, -0.1)
-    tmp_pose2 = find_pose(recent_aruco, 0, 0, -0.1)
-    tmp_pose3 = find_pose(recent_aruco, 0,0,-0.7)
-    tmp_pose4 = find_pose(recent_aruco, 0.05, 0, -0.7)
-    move_cobot_and_calib(pose_find_closet_position, pose_closet_orientation)
+    gripper_move(3)
+    tmp_pose = find_pose(recent_aruco, 0.05, 0,  -0.11)
+    tmp_pose2 = find_pose(recent_aruco, 0.02, 0, -0.11)
+    tmp_pose3 = find_pose(recent_aruco, 0.02, 0, -0.08)
+    tmp_pose4 = find_pose(recent_aruco, 0.07, 0, -0.08)
     
+    move_cobot_and_calib2(find_joint)
+
     move_cobot_and_calib(tmp_pose4, pose_closet_orientation)
-    move_cobot_and_calib(tmp_pose2, pose_closet_orientation)
+    move_cobot_and_calib(tmp_pose3, pose_closet_orientation)
     gripper_move(75)
     
-    move_cobot_and_calib(tmp_pose2, pose_closet_orientation)
+    move_cobot_and_calib(tmp_pose4, pose_closet_orientation)
 
-    move_cobot_and_calib(tmp_pose, pose_closet_orientation)
+    # move_cobot_and_calib(tmp_pose, pose_closet_orientation)
 
-    move_cobot_and_calib(pose_find_closet_position, pose_closet_orientation)
+    move_cobot_and_calib2(find_joint)
     
     hanger_position.queue.clear()
     
@@ -189,10 +220,10 @@ def second_callback(request) :
     print(recent_aruco)
     find_aruco_pose = get_tf_position(recent_aruco, 0,0,0)
     hanger_position.put(find_aruco_pose)
-    tmp_pose = find_pose(find_aruco_pose, 0.05, 0, -0.1)
-    tmp_pose2 = find_pose(find_aruco_pose, 0, 0, -0.1)
-    tmp_pose3 = find_pose(find_aruco_pose, 0,0,-0.7)
-    tmp_pose4 = find_pose(find_aruco_pose, 0.05, 0, -0.7)
+    tmp_pose = find_pose(find_aruco_pose, 0.05, 0,  -0.11)
+    tmp_pose2 = find_pose(find_aruco_pose, 0.02, 0, -0.11)
+    tmp_pose3 = find_pose(find_aruco_pose, 0.02, 0, -0.08)
+    tmp_pose4 = find_pose(find_aruco_pose, 0.07, 0, -0.08)
     move_cobot_and_calib(tmp_pose, pose_closet_orientation)
     #그리퍼 열기
     gripper_move(90)
@@ -201,7 +232,7 @@ def second_callback(request) :
     #들어가기
     move_cobot_and_calib(tmp_pose2, pose_closet_orientation)
     #그리퍼 닫기
-    gripper_move(5)
+    gripper_move(3)
     move_cobot_and_calib(tmp_pose3, pose_closet_orientation)
     
     move_cobot_and_calib(tmp_pose4, pose_closet_orientation)
@@ -216,7 +247,7 @@ def robotarm_main_callback(request) :
     print("i receive robotarm_action_service")      #GUI에서 동작 요청 수신 시
     global start_state
     if request.mode == 'start_mode' :       #시작, 카메라 촬영 포지션 이동
-        move_cobot_and_calib(pose_find_closet_position, pose_closet_orientation)
+        move_cobot_and_calib2(find_joint)
         aruco_start_pub.publish(1)      #aruco, seg 시작 명령
         start_state = True
         success = True

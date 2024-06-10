@@ -71,16 +71,20 @@ def cali_callback(data):
         print("i receive cali_service")
         state = False
         proportional_control()
+    time.sleep(1)
     return basic_serviceResponse(True)
     
 def gripper_callback(data):
     global mc
     #그리퍼 동작 서비스
+    
     print("i receive gripper_service")
     mc.set_gripper_mode(0)
+    time.sleep(0.5)
     mc.init_eletric_gripper()
     time.sleep(0.7)
     mc.set_eletric_gripper(1)
+    time.sleep(0.5)
     mc.set_gripper_value(data.value,50)
     time.sleep(1)
     rospy.loginfo("gripper value is %d", data.value)
@@ -90,39 +94,39 @@ def test_callback(data):
     global state
     state = False
 
-def aruco_callback(data):
-    global coor_list, tvecs_state, mc
-    xyz = list(data.data)
-    print(xyz)
-    if abs(xyz[0]) + abs(xyz[1]) < 0.01 :
-        if xyz[2] < 0.05 :
-            tvecs_state = True
-        else : 
-            mc.send_coords([coor_list[0]-1, coor_list[1], coor_list[2], 10 , 90, -170], 40, 1)
-    else :
-        if xyz[0] > 0 :
-            coor_list[1] = coor_list[1] + 1
-        else :
-            coor_list[1] = coor_list[1] - 1
-        if xyz[1] > 0 :
-            coor_list[2]= coor_list[2] + 1
-        else :
-            coor_list[2] = coor_list[2] - 1
-        asdf = [coor_list[0], coor_list[1], coor_list[2], 10 , 90, -170]
-        print(asdf)
-        mc.send_coords(asdf, 20, 1)
+# def aruco_callback(data):
+#     global coor_list, tvecs_state, mc
+#     xyz = list(data.data)
+#     print(xyz)
+#     if abs(xyz[0]) + abs(xyz[1]) < 0.01 :
+#         if xyz[2] < 0.05 :
+#             tvecs_state = True
+#         else : 
+#             mc.send_coords([coor_list[0]-1, coor_list[1], coor_list[2], 10 , 90, -170], 40, 1)
+#     else :
+#         if xyz[0] > 0 :
+#             coor_list[1] = coor_list[1] + 1
+#         else :
+#             coor_list[1] = coor_list[1] - 1
+#         if xyz[1] > 0 :
+#             coor_list[2]= coor_list[2] + 1
+#         else :
+#             coor_list[2] = coor_list[2] - 1
+#         asdf = [coor_list[0], coor_list[1], coor_list[2], 10 , 90, -170]
+#         print(asdf)
+#         mc.send_coords(asdf, 20, 1)
     
 
-def empty_callback(data):
-    global coor_list, tvecs_state
-    tmp_list = mc.get_coords()
-    coor_list = [tmp_list[0], tmp_list[1], tmp_list[2]]
-    while True :
-        rospy.Subscriber("aruco_tvecs", Float32MultiArray, aruco_callback)
-        if tvecs_state :
-            break
-    tvecs_state = False
-    return EmptyResponse()
+# def empty_callback(data):
+#     global coor_list, tvecs_state
+#     tmp_list = mc.get_coords()
+#     coor_list = [tmp_list[0], tmp_list[1], tmp_list[2]]
+#     while True :
+#         rospy.Subscriber("aruco_tvecs", Float32MultiArray, aruco_callback)
+#         if tvecs_state :
+#             break
+#     tvecs_state = False
+#     return EmptyResponse()
     
 def listener():
     global mc
@@ -139,7 +143,7 @@ def listener():
     rospy.Subscriber("state_check", Int32 , state_callback)
     
     
-    rospy.Service('chase_aruco_service', Empty, empty_callback)
+    # rospy.Service('chase_aruco_service', Empty, empty_callback)
     #수신하는 joint_state와 실제 로봇암을 일치시켜주기 위한 서비스
     rospy.Service("calibrate_service", basic_service , cali_callback)
     

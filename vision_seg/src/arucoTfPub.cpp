@@ -13,7 +13,7 @@
 
 class Aruco {
 public:
-    Aruco() : MARKERLEN(0.037){
+    Aruco() : MARKERLEN(0.036){
         DICT_GET = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_6X6_250);  // 
         ARUCO_PARAMETERS = cv::aruco::DetectorParameters::create();
         
