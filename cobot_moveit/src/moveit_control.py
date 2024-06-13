@@ -5,6 +5,8 @@ from moveit_msgs.msg import MoveItErrorCodes
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Int32, String, Float32
 from cobot_moveit.srv import *
+from cobot_moveit.msg import *
+
 from std_srvs.srv import Empty, EmptyResponse
 
 #옷장 바라보는 방향
@@ -45,7 +47,7 @@ pose_basic_position = ({
 })
 
 find_joint = [0.136, -1.4955, 0.5774, 0.9178, -1.7064, 1.57]
-
+agv_joint = [0, -0.4, 0, -0.174, 1.57, 1.57]
 aruco_start_pub = None
 seg_start_pub = None
 move_start_pub = None
@@ -57,6 +59,8 @@ test_pub = None
 test_name = None
 plc_controller = None
 recent_aruco = None
+seg_state = False
+
 def cali_service_start() :
     rospy.wait_for_service('calibrate_service')
     try :
@@ -178,13 +182,11 @@ def find_pose(pose , x, y, z) :
 
 def third_callback(request) :
     global hanger_position, recent_aruco
-    
+
     recent_aruco = hanger_position.get()
     gripper_move(3)
-    tmp_pose = find_pose(recent_aruco, 0.05, 0,  -0.11)
-    tmp_pose2 = find_pose(recent_aruco, 0.02, 0, -0.11)
-    tmp_pose3 = find_pose(recent_aruco, 0.02, 0, -0.08)
-    tmp_pose4 = find_pose(recent_aruco, 0.07, 0, -0.08)
+    tmp_pose3 = find_pose(recent_aruco, 0.01, 0.01, -0.08)
+    tmp_pose4 = find_pose(recent_aruco, 0.05, 0.01, -0.07)
     
     move_cobot_and_calib2(find_joint)
 
@@ -203,27 +205,29 @@ def third_callback(request) :
     rospy.loginfo("Returning success: %s (type: %s)", True, type(True))        
     return basic_serviceResponse(True)  # 수신완료 리턴
 
-
-        
 def second_callback(request) :
-    global hanger_position, recent_aruco
+    global hanger_position, recent_aruco, seg_state
+    seg_state = False  # 초기화
     plc_controller.publish("cw")
     print("i return second_service")
     print(request.class_name)
     
     seg_start_pub.publish(request.class_name)
     print("seg_start_pub")
-    time.sleep(2)
-    
-    
+    plc_controller.publish("cw")
+    time.sleep(5.7)
+    plc_controller.publish("stop")
+    # seg_state가 True가 될 때까지 대기
+    print("stop_plc")
+    rospy.sleep(3)  # 추가적인 딜레이 필요 시 사용
     recent_aruco = recent_tf_service_start(request.class_name)
     print(recent_aruco)
     find_aruco_pose = get_tf_position(recent_aruco, 0,0,0)
     hanger_position.put(find_aruco_pose)
-    tmp_pose = find_pose(find_aruco_pose, 0.05, 0,  -0.11)
-    tmp_pose2 = find_pose(find_aruco_pose, 0.02, 0, -0.11)
-    tmp_pose3 = find_pose(find_aruco_pose, 0.02, 0, -0.08)
-    tmp_pose4 = find_pose(find_aruco_pose, 0.07, 0, -0.08)
+    tmp_pose = find_pose(find_aruco_pose, 0.05, 0,  -0.105)
+    tmp_pose2 = find_pose(find_aruco_pose, 0.02, 0, -0.105)
+    tmp_pose3 = find_pose(find_aruco_pose, 0.02, 0, -0.085)
+    tmp_pose4 = find_pose(find_aruco_pose, 0.04, 0, -0.085)
     move_cobot_and_calib(tmp_pose, pose_closet_orientation)
     #그리퍼 열기
     gripper_move(90)
@@ -238,7 +242,10 @@ def second_callback(request) :
     move_cobot_and_calib(tmp_pose4, pose_closet_orientation)
     
     move_cobot_and_calib(pose_put_cloth_position, pose_person_orientation)
+    move_cobot_and_calib2(agv_joint)
     gripper_move(75)
+    move_cobot_and_calib(pose_put_cloth_position, pose_person_orientation)
+    
     
     rospy.loginfo("Returning success: %s (type: %s)", True, type(True))        
     return second_service_msgResponse(True)  # 수신완료 리턴

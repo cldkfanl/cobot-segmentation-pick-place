@@ -8,7 +8,7 @@ class CameraPublisher {
 public:
     CameraPublisher() {
         image_pub = nh.advertise<sensor_msgs::CompressedImage>("camera/arm/compressed", 1);
-        capture.open("/dev/video0", cv::CAP_V4L2);
+        capture.open("/dev/video2", cv::CAP_V4L2);
         capture.set(cv::CAP_PROP_FRAME_WIDTH, 640);
         capture.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
         capture.set(cv::CAP_PROP_BUFFERSIZE, 1);

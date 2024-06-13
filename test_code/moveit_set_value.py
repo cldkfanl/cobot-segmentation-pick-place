@@ -19,12 +19,12 @@ def move_to_jointpose():
     
     # 각도를 설정합니다.
     arm_group = moveit_commander.MoveGroupCommander("arm_group")
-    angles_in_degrees = [0, -55, 25, 30, -90, 90] # 값 변경
-    radian_pose = degrees_to_radians(angles_in_degrees)
-    print("Target joint pose in radians:", radian_pose)
+    agv_joint = [0.136, -1.4955, 0.5774, 0.9178, -1.7064, 1.57]
+
+    print("Target joint pose in radians:", agv_joint)
     
     # 목표 관절 각도를 설정합니다.
-    arm_group.set_joint_value_target(radian_pose)
+    arm_group.set_joint_value_target(agv_joint)
     
     # 관절 값으로 이동합니다.
     arm_group.go(wait=True)

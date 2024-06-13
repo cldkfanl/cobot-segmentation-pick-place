@@ -17,7 +17,6 @@ class Segment(object):
         self.camera_matrix = np.array([[542.93802581, 0, 329.25053673], [0, 541.67327024, 256.79448482], [0, 0, 1]])  # 카메라 행렬로 설정
         self.dist_coeffs = np.array([[0.19266232, -0.79141779, -0.00253703, 0.00613584, 1.04252319]])  # 왜곡 계수로 설정
         self.seg_xy_publisher = rospy.Publisher('/seg_cam_xy', seg_center, queue_size=10)
-        self.plc_controller = rospy.Publisher('plc_control', String, queue_size=10)
         self.image_sub = None
         self.camera_mode = 'xy_mode'
         self.image_buffer = None
@@ -55,16 +54,16 @@ class Segment(object):
                             self.image_buffer = rgba_img
                             
                             if self.camera_mode == 'xy_pub_mode' and self.find_seg_class_name == cls_name :
-                                self.plc_controller.publish("stop")
                                 center_x = int((result.boxes.xyxy[j][0] + result.boxes.xyxy[j][2])/2)
                                 center_y = int((result.boxes.xyxy[j][1] + result.boxes.xyxy[j][3])/2)
                                 print(f"Object class: {cls_name}, Center: ({center_x}, {center_y}), Confidence: {confidences}")
                                 
-                                seg_msg = seg_center()
-                                seg_msg.names = self.find_seg_class_name
-                                seg_msg.x_points = center_x
-                                seg_msg.y_points = center_y
-                                self.seg_xy_publisher.publish(seg_msg)
+                                if center_x >= 100 and center_x <= 400 :
+                                    seg_msg = seg_center()
+                                    seg_msg.names = self.find_seg_class_name
+                                    seg_msg.x_points = center_x
+                                    seg_msg.y_points = center_y
+                                    self.seg_xy_publisher.publish(seg_msg)
                         
                             elif self.camera_mode == 'seg_pub_mode' and self.image_buffer is not None :
                                 # rgba_img를 압축된 이미지로 변환
